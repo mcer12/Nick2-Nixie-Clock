@@ -1,6 +1,8 @@
 # Nick2-Nixie-Clock
 Nixie clocks based on ESP8266 and NTP, easily flashable (NodeMCU style) and super slim
 
+**!!! This project involves high voltage, make this at your own risk !!!**
+
 **IN-16 version:**
 Schematic, gerber and BOM and 3D model of cover are included.
 
