@@ -30,12 +30,15 @@
 
 // Pick a clock version below!
 #define CLOCK_VERSION_IN16
+//#define CLOCK_VERSION_ZM1040
 
 #if defined(CLOCK_VERSION_IN16)
 #define CLOCK_6_DIGIT
+#else
+#define CLOCK_4_DIGIT
 #endif
 
-#if !defined(CLOCK_VERSION_IN16)
+#if !defined(CLOCK_VERSION_IN16) && !defined(CLOCK_VERSION_ZM1040)
 #error "You have to select a clock version! Line 25"
 #endif
 
@@ -55,7 +58,11 @@
 #define DATA 13
 #define CLOCK 14
 #define LATCH 15
-#define TIMER_INTERVAL_uS 300 // screen pwm interval in microseconds, 300 = safe value for 6 digits. You can go down to 150-200 for 4-digit one. Going too low will cause crashes.
+#define COLON_PIN 4
+#define TIMER_INTERVAL_uS 220 // screen pwm interval in microseconds, 300 = safe value for 6 digits. You can go down to 150-200 for 4-digit one. Going too low will cause crashes.
+#if defined(CLOCK_6_DIGIT)
+#define TIMER_INTERVAL_uS 300
+#endif
 #define MINIMAL_CROSSFADE_BRIGHTNESS 8 // crossfade will be disabled below this brightness because there's not enough steps for smooth transition
 
 // User global vars
@@ -134,6 +141,7 @@ RgbColor currentColor = RgbColor(0, 0, 0);
 
 // MAX6921 has 20 outputs, we have 3 of them,
 // closest to that is 64 (8x8)
+#if defined(CLOCK_VERSION_IN16)
 const uint8_t digitsCount = 6; // number of digits
 const uint8_t cathodeCount = 10; // number of cathodes per digit
 const uint8_t bytesToShift = 8; // we have 60 outputs, 60 / 8 = 8 bytes
@@ -212,6 +220,62 @@ const uint8_t digitPins[digitsCount][cathodeCount] = {
     58, //9
   },
 };
+#else if defined(CLOCK_VERSION_ZM1040)
+const uint8_t digitsCount = 4; // number of digits
+const uint8_t cathodeCount = 10; // number of cathodes per digit
+const uint8_t bytesToShift = 8; // we have 60 outputs, 60 / 8 = 8 bytes
+const uint8_t digitPins[digitsCount][cathodeCount] = {
+  {
+    6, //0
+    7, //1
+    14,  //2
+    15, //3
+    0, //4
+    1, //5
+    2, //6
+    3, //7
+    4, //8
+    5, //9
+  },
+  {
+    12, //0
+    13, //1
+    20, //2
+    21, //3
+    22, //4
+    23, //5
+    8, //6
+    9, //7
+    10, //8
+    11, //9
+  },
+  {
+    18, //0
+    19, //1
+    26, //2
+    27, //3
+    28, //4
+    29, //5
+    30, //6
+    31, //7
+    16, //8
+    17, //9
+  },
+  {
+    24, //0
+    25, //1
+    32, //2
+    33, //3
+    34, //4
+    35, //5
+    36, //6
+    37, //7
+    38, //8
+    39, //9
+  },
+};
+#endif
+
 
 
 /*
@@ -226,13 +290,16 @@ const uint8_t digitPins[digitsCount][cathodeCount] = {
 volatile uint8_t currentCathode[digitsCount];
 volatile uint8_t targetCathode[digitsCount];
 volatile uint8_t crossFadeState[digitsCount];
-volatile uint8_t currentBrightness[digitsCount];
-volatile uint8_t targetBrightness[digitsCount];
+volatile uint8_t currentNeonBrightness;
+volatile uint8_t targetNeonBrightness;
 
-// 32 steps of brightness * 200uS => 6.4ms for full refresh => 160Hz... pretty good!
-// 48 steps => 100hz
+// 32 steps @ 220uS => 142hz
+// 48 steps @ 220uS => 95.24hz
+// 48 steps @ 300uS => 69hz
+// 64 steps @ 220uS => 71.4hz
+// 64 steps @ 300uS => 52hz
 volatile uint8_t shiftedDutyState[digitsCount];
-const uint8_t pwmResolution = 48; // should be in the multiples of dimmingSteps to enable smooth crossfade
+const uint8_t pwmResolution = 64; // should be in the multiples of dimmingSteps to enable smooth crossfade
 const uint8_t dimmingSteps = 2;
 
 // Cathode poisoning prevention pattern --> circle through least used digits, prioritize number 7
@@ -252,7 +319,7 @@ uint8_t healPattern[6][10] = {
 uint8_t bri_vals_separate[3][6] = {
   {8, 8, 8, 8, 8, 8}, // Low brightness
   {24, 24, 24, 24, 24, 24}, // Medium brightness
-  {48, 48, 48, 48, 48, 48}, // High brightness
+  {64, 64, 64, 64, 64, 64}, // High brightness
 };
 
 
@@ -283,7 +350,11 @@ IPAddress ip_addr;
 TimeChangeRule EDT = {"EDT", Last, Sun, Mar, 1, 120};  //UTC + 2 hours
 TimeChangeRule EST = {"EST", Last, Sun, Oct, 1, 60};  //UTC + 1 hours
 Timezone TZ(EDT, EST);
+#if defined(CLOCK_VERSION_IN16)
 NeoPixelBus<NeoGrbFeature, NeoWs2813InvertedMethod> strip(PixelCount);
+#else
+NeoPixelBus<NeoGrbFeature, NeoWs2813Method> strip(PixelCount);
+#endif
 NeoGamma<NeoGammaTableMethod> colorGamma;
 NeoPixelAnimator animations(PixelCount);
 DynamicJsonDocument json(2048); // config buffer
@@ -307,6 +378,10 @@ void setup() {
   if (!SPIFFS.begin()) {
     Serial.println("[CONF] Failed to mount file system");
   }
+
+  pinMode(COLON_PIN, OUTPUT);
+  digitalWrite(COLON_PIN, 0);
+
   readConfig();
 
   initStrip();
@@ -426,7 +501,7 @@ void loop() {
     ) {
       healingCycle(); // do healing loop if the time is right :)
     } else {
-      
+
       if (timeUpdateStatus) {
         if (timeUpdateStatus == UPDATE_SUCCESS) {
           setTemporaryColonColor(5, green[bri]);

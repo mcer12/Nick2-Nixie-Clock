@@ -135,12 +135,15 @@ void handleColon() {
     updateColonColor(colonColor);
     return;
   } else if (json["colon"].as<int>() == 2) {
+    setNeon(!toggleSeconds);
+#ifndef CLOCK_VERSION_ZM1040
     if (toggleSeconds) {
       SetupAnimations(colonColor, RgbColor(0, 0, 0), 150);
     }
     else {
       SetupAnimations(RgbColor(0, 0, 0), colonColor, 150);
     }
+#endif
     toggleSeconds = !toggleSeconds;
     return;
   }

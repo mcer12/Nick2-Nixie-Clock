@@ -86,6 +86,17 @@ void ICACHE_RAM_ATTR TimerHandler()
     }
   }
 
+  if (
+    (shiftedDutyState[0] < currentNeonBrightness && shiftedDutyState[0] < bri_vals_separate[bri][0])
+  ) {
+    // set gpio through register manipulation, fast!
+    GPOS = 1 << COLON_PIN;
+  }
+  else {
+    GPOC = 1 << COLON_PIN;
+  }
+
+
   shiftWriteBytes(bytes); // Digits are reversed (first shift register = last digit etc.)
 
   for (int i = 0; i < digitsCount; i++) {
@@ -155,7 +166,15 @@ void handleFade() {
       }
     }
   }
+  if (currentNeonBrightness < targetNeonBrightness && currentNeonBrightness < bri_vals_separate[bri][0] && fadeIterator % (pwmResolution / bri_vals_separate[bri][0]) == 0) currentNeonBrightness++;
+  if (currentNeonBrightness > targetNeonBrightness && currentNeonBrightness > 0 && fadeIterator % (pwmResolution / bri_vals_separate[bri][0]) == 0) currentNeonBrightness--;
+
   fadeIterator++;
+}
+
+void setNeon(bool state) {
+  if (state) targetNeonBrightness = bri_vals_separate[bri][0];
+  else targetNeonBrightness = 0;
 }
 
 void setDigit(uint8_t digit, uint8_t value) {
@@ -274,6 +293,9 @@ void showIP(int delay_ms) {
 }
 
 void setupPhaseShift() {
+  // for some reason ZM1040 is singing more with phase shift
+/*
+#ifndef CLOCK_VERSION_ZM1040
   disableScreen();
   uint8_t shiftSteps = floor(pwmResolution / digitsCount);
   if (shiftSteps)
@@ -281,6 +303,8 @@ void setupPhaseShift() {
       shiftedDutyState[i] = i * shiftSteps;
     }
   enableScreen();
+#endif
+*/
 }
 
 void toggleNightMode() {
