@@ -29,8 +29,8 @@
 #include <Timezone.h>
 
 // Pick a clock version below!
-#define CLOCK_VERSION_IN16
-//#define CLOCK_VERSION_ZM1040
+//#define CLOCK_VERSION_IN16
+#define CLOCK_VERSION_ZM1040
 
 #if defined(CLOCK_VERSION_IN16)
 #define CLOCK_6_DIGIT
@@ -59,7 +59,7 @@
 #define CLOCK 14
 #define LATCH 15
 #define COLON_PIN 4
-#define TIMER_INTERVAL_uS 220 // screen pwm interval in microseconds, 300 = safe value for 6 digits. You can go down to 150-200 for 4-digit one. Going too low will cause crashes.
+#define TIMER_INTERVAL_uS 250 // screen pwm interval in microseconds, 300 = safe value for 6 digits. You can go down to 150-200 for 4-digit one. Going too low will cause crashes.
 #if defined(CLOCK_6_DIGIT)
 #define TIMER_INTERVAL_uS 300
 #endif
@@ -107,7 +107,7 @@ HsbColor azure[] = {
   HsbColor(RgbColor(0, 200, 200)), // HIGH
 };
 
-#if defined(CLOCK_VERSION_IV6) || defined(CLOCK_VERSION_IV6_V2)
+#if defined(CLOCK_VERSION_IN6)
 HsbColor colonColorDefault[] = {
   HsbColor(RgbColor(30, 70, 50)), // LOW
   HsbColor(RgbColor(50, 100, 80)), // MEDIUM
