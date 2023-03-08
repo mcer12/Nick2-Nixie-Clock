@@ -9,7 +9,7 @@ Schematic, gerber and BOM and 3D model of cover are included.
 **Wiki**  
 https://github.com/mcer12/Nick2-Nixie-Clock/wiki
 
-**Enclosure model:** 
+**Enclosure model:**  
 IN-16: https://www.printables.com/model/330845-nick2-in-16-nixie-clock  
 ZM1040: -todo-
 
