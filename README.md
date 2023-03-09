@@ -11,7 +11,7 @@ https://github.com/mcer12/Nick2-Nixie-Clock/wiki
 
 **Enclosure model:**  
 IN-16: https://www.printables.com/model/330845-nick2-in-16-nixie-clock  
-ZM1040: -todo-
+ZM1040: https://www.printables.com/model/418912-nick2-zm1040-nixie-clock
 
 **Some things to note:**
 - This design is made with small footprint and ultra low-profile in mind, using only 3mm high components.
